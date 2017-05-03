@@ -25,8 +25,16 @@ import Control.Graphted.Class
 
 import Control.MonadZero.Graph
 
+-- | Graph indexed monad with a monoidal operation satisfying the left distribution law.
+--
+-- See the typeclassopedia <https://wiki.haskell.org/Typeclassopedia>.
 class GMonadZero m => GMonadPlus (m :: p -> * -> *) where
+
+    -- | The or operation ('mplus') on the graph index.
+    --
+    -- Default instance: @Plus m i j = 'Combine' m i j@ 
     type family Plus m (i :: p) (j :: p) :: p
     type instance Plus m i j = Combine m i j
 
+    -- | An associative binary operation ('mplus').
     gplus :: m i a -> m j a -> m (Plus m i j) a

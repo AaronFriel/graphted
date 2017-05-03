@@ -25,8 +25,14 @@ import Control.Graphted.Class
 
 import Control.Monad.Graph
 
+-- | Graph indexed monad with a monoidal zero.
+--
+-- See the typeclassopedia <https://wiki.haskell.org/Typeclassopedia>.
 class GMonad m => GMonadZero (m :: p -> * -> *) where
+
+    -- | The zero element ('mzero', 'mempty') of the graph index.
     type family Zero m :: p
     type instance Zero m = Unit m
 
+    -- | Identity element.
     gzero :: m (Zero m) a

@@ -1,13 +1,11 @@
 {- |
 Module      :  Data.GWrapped
-Description :
+Description :  Wrapped type constructors (typically Monad), graphted.
 Copyright   :  (c) Aaron Friel
 License     :  BSD-3
-
 Maintainer  :  Aaron Friel <mayreply@aaronfriel.com>
 Stability   :  unstable
 Portability :  portable
-
 
 -}
 
@@ -24,13 +22,11 @@ import Control.Applicative (Alternative (..))
 import Control.Monad (MonadPlus (..))
 import Data.Type.Equality (type (~~))
 
--- Wrapping a non-indexed type constructor:
-newtype GWrapped (m :: * -> *) (p :: *) a = GWrapped { unGwrap :: m a }
+-- | Wrap a non-indexed type constructor:
+newtype GWrapped (m :: * -> *) (p :: *) a = GWrapped { unG :: m a }
 
-unM :: GWrapped m p a -> m a
-unM (GWrapped m) = m
-
-liftG :: m a -> GWrapped m () a
+-- | Lift an object to 'GWrapped'.
+liftG :: m a -> GWrapped m p a
 liftG = GWrapped
 
 instance Graphted (GWrapped m) where
@@ -42,8 +38,8 @@ instance Applicative f => GPointed (GWrapped f) where
     gpoint' = GWrapped . pure
 
 instance Functor f => GFunctor (GWrapped f) where
-    gmap f = GWrapped . fmap f . unGwrap
-    gconst f = GWrapped . ((<$) f) . unGwrap
+    gmap f = GWrapped . fmap f . unG
+    gconst f = GWrapped . ((<$) f) . unG
 
 instance Applicative f => GApplicative (GWrapped f) where
     gap   (GWrapped m) (GWrapped k) = GWrapped $ m <*> k
@@ -51,8 +47,8 @@ instance Applicative f => GApplicative (GWrapped f) where
     gbut  (GWrapped m) (GWrapped k) = GWrapped $ m <* k
 
 instance Monad m => GMonad (GWrapped m) where
-    gbind (GWrapped m) k = GWrapped $ m >>= unM . k
-    gjoin (GWrapped m) = GWrapped $ m >>= unM
+    gbind (GWrapped m) k = GWrapped $ m >>= unG . k
+    gjoin (GWrapped m) = GWrapped $ m >>= unG
 
 instance Monad m => GMonadFail (GWrapped m) where
     gfail = GWrapped . fail

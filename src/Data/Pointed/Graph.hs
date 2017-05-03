@@ -20,15 +20,27 @@ module Data.Pointed.Graph where
 
 import Control.Graphted.Class
 
--- | Pointed functor.
+-- | Graph indexed pointed functor.
 class GPointed (f :: p -> * -> *) where
+    
+    -- | The pure element of the graph index.
     type family Pure f :: p
     type instance Pure f = Unit f
 
-    -- | Accessible only with type applications.
-    gpoint' :: forall t a. a -> f t a
-
+    -- | Return a pointed functor indexed by the 'Pure' type instance ('pure').
+    --
+    -- >>> :t gpoint @_ @(GWrapped Maybe) "Hello, World"
+    -- :: GWrapped Maybe () [Char]
     gpoint :: forall a. a -> f (Pure f) a
     gpoint = gpoint' @p @f @(Pure f)
+
+    -- | Return a pointed functor indexed by a type 't' in the domain of 'p'.
+    --
+    -- Accessible with type applications, e.g.:
+    -- 
+    -- >>> :t gpoint' @_ @(GWrapped Maybe) @Int
+    -- gpoint' @_ @(GWrapped Maybe) @Int :: a -> GWrapped Maybe Int a
+    -- 
+    gpoint' :: forall t a. a -> f t a
 
     {-# MINIMAL gpoint' #-}
