@@ -8,7 +8,7 @@ license-file:        LICENSE
 author:              Aaron Friel
 maintainer:          mayreply@aaronfriel.com
 copyright:           BSD3
-category:            Web
+category:            Control
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
