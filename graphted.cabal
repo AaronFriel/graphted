@@ -1,5 +1,5 @@
 name:                graphted
-version:             0.1.0.2
+version:             0.1.5.0
 synopsis:    Graph indexed monads.
 -- description: TODO
 homepage:            https://github.com/aaronfriel/graphted#readme
@@ -27,8 +27,9 @@ library
                      , Data.Pointed.Graph
                      , Data.GWrapped
                      , Prelude.Graphted
-  build-depends:       base >= 4.7 && < 5
+  build-depends:       base >= 4.8 && < 5
   default-language:    Haskell2010
+  ghc-options:         -fno-warn-partial-type-signatures
 
 source-repository head
   type:     git

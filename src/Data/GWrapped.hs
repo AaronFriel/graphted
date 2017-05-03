@@ -9,6 +9,8 @@ Portability :  portable
 
 -}
 
+{-# LANGUAGE CPP #-}
+
 {-# LANGUAGE GADTs         #-}
 {-# LANGUAGE PolyKinds     #-}
 {-# LANGUAGE TypeFamilies  #-}
@@ -20,7 +22,7 @@ import Control.Graphted
 
 import Control.Applicative (Alternative (..))
 import Control.Monad (MonadPlus (..))
-import Data.Type.Equality (type (~~))
+-- import Data.Type.Equality (type (~~))
 
 -- | Wrap a non-indexed type constructor:
 newtype GWrapped (m :: * -> *) (p :: *) a = GWrapped { unG :: m a }
@@ -30,12 +32,16 @@ liftG :: m a -> GWrapped m p a
 liftG = GWrapped
 
 instance Graphted (GWrapped m) where
-    type Unit (GWrapped _) = ()
-    type Inv (GWrapped _) i j = i ~~ j
-    type Combine (GWrapped _) i j = i
+    type Unit (GWrapped m) = ()
+    type Inv (GWrapped m) i j = i ~ j
+    type Combine (GWrapped m) i j = i
 
 instance Applicative f => GPointed (GWrapped f) where
+#if __GLASGOW_HASKELL__ >= 801
     gpoint' = GWrapped . pure
+#else
+    gpoint = GWrapped . pure
+#endif
 
 instance Functor f => GFunctor (GWrapped f) where
     gmap f = GWrapped . fmap f . unG

@@ -10,15 +10,18 @@ Portability :  portable
 
 -}
 
+{-# LANGUAGE CPP #-}
+
+#if __GLASGOW_HASKELL__ >= 801
 {-# LANGUAGE ApplicativeDo         #-}
+#endif
+
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RebindableSyntax      #-}
-
-{-# OPTIONS_GHC -Wno-partial-type-signatures #-}
 
 module Prelude.Graphted (
     -- Functor
@@ -36,7 +39,9 @@ module Prelude.Graphted (
     (<**>), liftA, liftA2, liftA3,
     join, liftM, liftM2, liftM3, liftM4, liftM5, ap,
 
+#if __GLASGOW_HASKELL__ >= 801
     mapM_, sequence_,
+#endif
 
     module X
     ) where
@@ -64,13 +69,13 @@ fmap = gmap
 pure :: GPointed f => a -> f (Pure f) a
 pure = gpoint
 
-(<*>) :: (GApplicative f, _) => f i (a -> b) -> f j a -> f (Apply f i j) b
+(<*>) :: (GApplicative f, Inv f i j) => f i (a -> b) -> f j a -> f (Apply f i j) b
 (<*>) = gap
 
-(*>) :: (GApplicative f, _) => f i a -> f j b -> f (Then f i j) b
+(*>) :: (GApplicative f, Inv f i j) => f i a -> f j b -> f (Then f i j) b
 (*>)= gthen
 
-(<*) :: (GApplicative f, _) => f i a -> f j b -> f (But f i j) a
+(<*) :: (GApplicative f, Inv f i j) => f i a -> f j b -> f (But f i j) a
 (<*) = gbut
 
 return :: GPointed m => a -> m (Pure m) a
@@ -88,20 +93,20 @@ zero = gzero
 fail :: GMonadFail m => String -> m (Fail m) a
 fail = gfail
 
-(<+>) :: (GMonadPlus f, _) => f i a -> f j a -> f (Plus f i j) a
+(<+>) :: (GMonadPlus f, Inv f i j) => f i a -> f j a -> f (Plus f i j) a
 (<+>) = gplus
 
-(<|>) :: (GMonadOr f, _) => f i a -> f j a -> f (Or f i j) a
+(<|>) :: (GMonadOr f, Inv f i j) => f i a -> f j a -> f (Or f i j) a
 (<|>) = gorelse
 
 -- Simplified binding, what GHC.Base would like to do but cannot for backwards compatbility.
-(>>) :: (GApplicative m, _) => m i a -> m j b -> m (Then m i j) b
+(>>) :: (GApplicative m, Inv m i j) => m i a -> m j b -> m (Then m i j) b
 (>>) = gthen
 
 join :: (GMonad m, Inv m i j) => m i (m j b) -> m (Join m i j) b
 join = gjoin
 
-(<**>) :: (GApplicative f, _) => f i1 a -> f i2 (a -> b)
+(<**>) :: (GApplicative f, Inv f (Pure f) i1, Inv f ((Apply f (Pure f) i1)) i2) => f i1 a -> f i2 (a -> b)
        -> f (Apply f (Apply f (Pure f) i1) i2) b
 (<**>) = liftA2 (flip ($))
 
@@ -154,9 +159,15 @@ liftM5 :: (GApplicative m, _)
        -> m (Apply m (Apply m (Apply m (Apply m (Fmap m i4) i3) i2) i1) i) b
 liftM5 f m1 m2 m3 m4 m5 = do { x1 <- m1; x2 <- m2; x3 <- m3; x4 <- m4; x5 <- m5; return (f x1 x2 x3 x4 x5) }
 
+#if __GLASGOW_HASKELL__ >= 801
 ap :: (GApplicative m, Inv m (Fmap m i) j) => m i (t -> b) -> m j t -> m (Apply m (Fmap m i) j) b
 ap m1 m2 = do { x1 <- m1; x2 <- m2; return (x1 x2) }
+#else
+-- ap :: (GApplicative m, Inv m (Fmap m i) j) => m i (t -> b) -> m j t -> m (Apply m (Fmap m i) j) b
+ap m1 m2 = liftM m1 m2
+#endif
 
+#if __GLASGOW_HASKELL__ >= 801
 -- Recursive bindings may be impossible. This type is inferred, but not always satisfiable.
 -- We will need to implement our own folds and control flow.
 mapM_ :: (GApplicative m, Foldable t, Apply m (Fmap m i) (Pure m) ~ Pure m, _)
@@ -167,4 +178,4 @@ mapM_ f = foldr ((>>) . f) (return ())
 sequence_ :: (GApplicative m, Foldable t, Apply m (Fmap m i) (Pure m) ~ Pure m, _)
           => t (m i a) -> m (Pure m) ()
 sequence_ = foldr (>>) (return ())
-
+#endif

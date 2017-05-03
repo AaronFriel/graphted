@@ -10,14 +10,19 @@ Portability :  portable
 
 -}
 
+{-# LANGUAGE CPP #-}
+
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE PolyKinds       #-}
 {-# LANGUAGE TypeFamilies    #-}
-{-# LANGUAGE TypeInType      #-}
 
 module Control.Graphted.Class where
 
-import Data.Kind (type (*), Constraint)
+#if __GLASGOW_HASKELL__ >= 801
+import Data.Kind (Constraint)
+#else
+import GHC.Exts (Constraint)
+#endif
 
 -- | Base class that all Graph-indexed types may implement.
 --

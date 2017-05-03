@@ -10,9 +10,15 @@ Portability :  portable
 
 -}
 
+{-# LANGUAGE CPP #-}
+
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
+
+#if __GLASGOW_HASKELL__ >= 801
 {-# LANGUAGE TypeApplications     #-}
+#endif
+
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -32,6 +38,9 @@ class GPointed (f :: p -> * -> *) where
     -- >>> :t gpoint @_ @(GWrapped Maybe) "Hello, World"
     -- :: GWrapped Maybe () [Char]
     gpoint :: forall a. a -> f (Pure f) a
+
+-- This implementation will only work with type applications.
+#if __GLASGOW_HASKELL__ >= 801
     gpoint = gpoint' @p @f @(Pure f)
 
     -- | Return a pointed functor indexed by a type 't' in the domain of 'p'.
@@ -44,3 +53,4 @@ class GPointed (f :: p -> * -> *) where
     gpoint' :: forall t a. a -> f t a
 
     {-# MINIMAL gpoint' #-}
+#endif
