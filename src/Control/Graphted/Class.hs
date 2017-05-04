@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP             #-}
+
 {- |
 Module      :  Control.Graph.Base
 Description :  Base type class for graph indexed types.
@@ -10,15 +12,13 @@ Portability :  portable
 
 -}
 
-{-# LANGUAGE CPP #-}
-
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE PolyKinds       #-}
 {-# LANGUAGE TypeFamilies    #-}
 
-module Control.Graphted.Class where
+module Control.Graphted.Class (Graphted (..), Constraint) where
 
-#if __GLASGOW_HASKELL__ >= 801
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 import Data.Kind (Constraint)
 #else
 import GHC.Exts (Constraint)

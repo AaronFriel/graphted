@@ -10,6 +10,7 @@ Portability :  portable
 
 -}
 
+{-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -32,9 +33,15 @@ class GMonadZero m => GMonadPlus (m :: p -> * -> *) where
 
     -- | The or operation ('mplus') on the graph index.
     --
-    -- Default instance: @Plus m i j = 'Combine' m i j@ 
+    -- Default instance: @Plus m i j = 'Combine' m i j@
     type family Plus m (i :: p) (j :: p) :: p
     type instance Plus m i j = Combine m i j
 
+    -- | An invariant on the indexes of 'Plus'.
+    --
+    -- Default instance: @PlusInv m i j = 'Inv' m i j@
+    type family PlusInv m (i :: p) (j :: p) :: Constraint
+    type instance PlusInv m i j = Inv m i j
+
     -- | An associative binary operation ('mplus').
-    gplus :: m i a -> m j a -> m (Plus m i j) a
+    gplus :: PlusInv m i j => m i a -> m j a -> m (Plus m i j) a

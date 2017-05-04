@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP           #-}
 {- |
 Module      :  Data.GWrapped
 Description :  Wrapped type constructors (typically Monad), graphted.
@@ -9,8 +10,6 @@ Portability :  portable
 
 -}
 
-{-# LANGUAGE CPP #-}
-
 {-# LANGUAGE GADTs         #-}
 {-# LANGUAGE PolyKinds     #-}
 {-# LANGUAGE TypeFamilies  #-}
@@ -21,11 +20,13 @@ module Data.GWrapped where
 import Control.Graphted
 
 import Control.Applicative (Alternative (..))
-import Control.Monad (MonadPlus (..))
+import Control.Monad       (MonadPlus (..))
 -- import Data.Type.Equality (type (~~))
 
 -- | Wrap a non-indexed type constructor:
 newtype GWrapped (m :: * -> *) (p :: *) a = GWrapped { unG :: m a }
+
+newtype Singleton i = Singleton i
 
 -- | Lift an object to 'GWrapped'.
 liftG :: m a -> GWrapped m p a
@@ -37,10 +38,13 @@ instance Graphted (GWrapped m) where
     type Combine (GWrapped m) i j = i
 
 instance Applicative f => GPointed (GWrapped f) where
-#if __GLASGOW_HASKELL__ >= 801
-    gpoint' = GWrapped . pure
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
+    type PureCxt (GWrapped f) i = ()
+    gpure' = GWrapped . pure
+
+    -- type Point (GWrapped f) i = Singleton i 
 #else
-    gpoint = GWrapped . pure
+    gpure = GWrapped . pure
 #endif
 
 instance Functor f => GFunctor (GWrapped f) where
@@ -48,6 +52,7 @@ instance Functor f => GFunctor (GWrapped f) where
     gconst f = GWrapped . ((<$) f) . unG
 
 instance Applicative f => GApplicative (GWrapped f) where
+    type But (GWrapped m) i j = i
     gap   (GWrapped m) (GWrapped k) = GWrapped $ m <*> k
     gthen (GWrapped m) (GWrapped k) = GWrapped $ m  *> k
     gbut  (GWrapped m) (GWrapped k) = GWrapped $ m <* k

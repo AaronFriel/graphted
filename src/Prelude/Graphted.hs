@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {- |
 Module      :  Prelude.Graphted
 Description :  Prelude with operators overridden by graph-indexed implementations
@@ -10,9 +11,7 @@ Portability :  portable
 
 -}
 
-{-# LANGUAGE CPP #-}
-
-#if __GLASGOW_HASKELL__ >= 801
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 {-# LANGUAGE ApplicativeDo         #-}
 #endif
 
@@ -39,7 +38,7 @@ module Prelude.Graphted (
     (<**>), liftA, liftA2, liftA3,
     join, liftM, liftM2, liftM3, liftM4, liftM5, ap,
 
-#if __GLASGOW_HASKELL__ >= 801
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
     mapM_, sequence_,
 #endif
 
@@ -67,24 +66,24 @@ fmap = gmap
 (<$>) = fmap
 
 pure :: GPointed f => a -> f (Pure f) a
-pure = gpoint
+pure = gpure
 
-(<*>) :: (GApplicative f, Inv f i j) => f i (a -> b) -> f j a -> f (Apply f i j) b
+(<*>) :: (GApplicative f, ApplyInv f i j) => f i (a -> b) -> f j a -> f (Apply f i j) b
 (<*>) = gap
 
-(*>) :: (GApplicative f, Inv f i j) => f i a -> f j b -> f (Then f i j) b
+(*>) :: (GApplicative f, ThenInv f i j) => f i a -> f j b -> f (Then f i j) b
 (*>)= gthen
 
-(<*) :: (GApplicative f, Inv f i j) => f i a -> f j b -> f (But f i j) a
+(<*) :: (GApplicative f, ButInv f i j) => f i a -> f j b -> f (But f i j) a
 (<*) = gbut
 
 return :: GPointed m => a -> m (Pure m) a
-return = gpoint
+return = gpure
 
-(>>=) :: (GMonad m, Inv m i j) => m i a -> (a -> m j b) -> m (Bind m i j) b
+(>>=) :: (GMonad m, BindInv m i j) => m i a -> (a -> m j b) -> m (Bind m i j) b
 (>>=) = gbind
 
-(=<<) :: (GMonad m, Inv m i j) => (a -> m j b) -> m i a -> m (Bind m i j) b
+(=<<) :: (GMonad m, BindInv m i j) => (a -> m j b) -> m i a -> m (Bind m i j) b
 (=<<) = flip (>>=)
 
 zero :: GMonadZero m => m (Zero m) a
@@ -93,22 +92,22 @@ zero = gzero
 fail :: GMonadFail m => String -> m (Fail m) a
 fail = gfail
 
-(<+>) :: (GMonadPlus f, Inv f i j) => f i a -> f j a -> f (Plus f i j) a
+(<+>) :: (GMonadPlus f, PlusInv f i j) => f i a -> f j a -> f (Plus f i j) a
 (<+>) = gplus
 
-(<|>) :: (GMonadOr f, Inv f i j) => f i a -> f j a -> f (Or f i j) a
+(<|>) :: (GMonadOr f, OrInv f i j) => f i a -> f j a -> f (Or f i j) a
 (<|>) = gorelse
 
 -- Simplified binding, what GHC.Base would like to do but cannot for backwards compatbility.
-(>>) :: (GApplicative m, Inv m i j) => m i a -> m j b -> m (Then m i j) b
+(>>) :: (GApplicative m, ThenInv m i j) => m i a -> m j b -> m (Then m i j) b
 (>>) = gthen
 
-join :: (GMonad m, Inv m i j) => m i (m j b) -> m (Join m i j) b
+join :: (GMonad m, JoinInv m i j) => m i (m j b) -> m (Join m i j) b
 join = gjoin
 
-(<**>) :: (GApplicative f, Inv f (Pure f) i1, Inv f ((Apply f (Pure f) i1)) i2) => f i1 a -> f i2 (a -> b)
+(<**>) :: (GApplicative f, _) => f i1 a -> f i2 (a -> b)
        -> f (Apply f (Apply f (Pure f) i1) i2) b
-(<**>) = liftA2 (flip ($))
+a <**> b = pure (flip ($)) <*> a <*> b
 
 liftA :: (GApplicative f, _) => (a -> b) -> f i1 a
       -> f (Apply f (Pure f) i1) b
@@ -159,15 +158,15 @@ liftM5 :: (GApplicative m, _)
        -> m (Apply m (Apply m (Apply m (Apply m (Fmap m i4) i3) i2) i1) i) b
 liftM5 f m1 m2 m3 m4 m5 = do { x1 <- m1; x2 <- m2; x3 <- m3; x4 <- m4; x5 <- m5; return (f x1 x2 x3 x4 x5) }
 
-#if __GLASGOW_HASKELL__ >= 801
-ap :: (GApplicative m, Inv m (Fmap m i) j) => m i (t -> b) -> m j t -> m (Apply m (Fmap m i) j) b
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
+ap :: (GApplicative m, _) => m i (t -> b) -> m j t -> m (Apply m (Fmap m i) j) b
 ap m1 m2 = do { x1 <- m1; x2 <- m2; return (x1 x2) }
 #else
 -- ap :: (GApplicative m, Inv m (Fmap m i) j) => m i (t -> b) -> m j t -> m (Apply m (Fmap m i) j) b
 ap m1 m2 = liftM m1 m2
 #endif
 
-#if __GLASGOW_HASKELL__ >= 801
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 -- Recursive bindings may be impossible. This type is inferred, but not always satisfiable.
 -- We will need to implement our own folds and control flow.
 mapM_ :: (GApplicative m, Foldable t, Apply m (Fmap m i) (Pure m) ~ Pure m, _)
