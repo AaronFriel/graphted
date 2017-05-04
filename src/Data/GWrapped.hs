@@ -52,7 +52,7 @@ instance Functor f => GFunctor (GWrapped f) where
     gconst f = GWrapped . ((<$) f) . unG
 
 instance Applicative f => GApplicative (GWrapped f) where
-    type But (GWrapped m) i j = i
+    type But (GWrapped f) i j = i
     gap   (GWrapped m) (GWrapped k) = GWrapped $ m <*> k
     gthen (GWrapped m) (GWrapped k) = GWrapped $ m  *> k
     gbut  (GWrapped m) (GWrapped k) = GWrapped $ m <* k

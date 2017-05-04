@@ -27,9 +27,6 @@ import Control.Graphted
 import Control.Monad.Indexed
 import Data.Functor.Indexed
 
-import Control.Applicative (Alternative (..))
-import Control.Monad       (MonadPlus (..))
-
 import GHC.Exts (Any)
 
 -- | Wrap a two-parameter-indexed type constructor:
@@ -75,7 +72,7 @@ instance IxFunctor f => GFunctor (WrappedIx f) where
     gconst a = WrappedIx . imap (const a) . unIx
 
 instance IxApplicative f => GApplicative (WrappedIx f) where
-    type But   (WrappedIx m) l r = '( FstIx l, SndIx r )
+    type But (WrappedIx f) l r = '( FstIx l, SndIx r )
     gap   (WrappedIx m) (WrappedIx k) = WrappedIx $ m <<*>> k
     gthen (WrappedIx m) (WrappedIx k) = WrappedIx $ m *>> k
     gbut (WrappedIx m) (WrappedIx k) = WrappedIx $ m <<* k
