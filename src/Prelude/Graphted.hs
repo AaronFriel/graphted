@@ -114,12 +114,12 @@ liftA :: (GApplicative f, _) => (a -> b) -> f i1 a
 liftA f a = pure f <*> a
 
 liftA2 :: (GApplicative f, _) => (a1 -> a2 -> b) -> f i1 a1 -> f i2 a2
-       -> f (Apply f (Apply f (Pure f) i1) i2) b
-liftA2 f a b = pure f <*> a <*> b
+       -> f (LiftA2 f i1 i2) b
+liftA2 f a b = gliftA2 f a b
 
 liftA3 :: (GApplicative f, _) => (a1 -> a2 -> a3 -> b) -> f i1 a1 -> f i2 a2 -> f i3 a3
-       -> f (Apply f (Apply f (Apply f (Pure f) i1) i2) i3) b
-liftA3 f a b c = pure f <*> a <*> b <*> c
+       -> f (Apply f (LiftA2 f i1 i2) i3) b
+liftA3 f a b c = gliftA2 f a b <*> c
 
 liftM :: (GApplicative m, _) => (t -> b) -> m j t -> m (Fmap m j) b
 liftM f m1              = do { x1 <- m1; return (f x1) }

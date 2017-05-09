@@ -1,5 +1,5 @@
 name:                graphted
-version:             0.3.0.0
+version:             0.3.1.0
 synopsis:    Graph indexed monads.
 -- description: TODO
 homepage:            https://github.com/aaronfriel/graphted#readme

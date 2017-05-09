@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {- |
 Module      :  Control.Applicative.Graph
 Description :  Graph indexed applicative functors
@@ -10,16 +11,20 @@ Portability :  portable
 
 -}
 
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE ImpredicativeTypes          #-}
-{-# LANGUAGE AllowAmbiguousTypes          #-}
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
+{-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE TypeApplications      #-}
+#endif
 
--- For the default Apply, Then, and But instances.
+-- For the default type instances.
 {-# LANGUAGE UndecidableInstances  #-}
 
 module Control.Applicative.Graph where
@@ -29,12 +34,40 @@ import Control.Graphted.Class
 import Data.Functor.Graph
 import Data.Pointed.Graph
 
+#if !MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
+import Data.Proxy
+#endif
+
+type family DefaultThen (useReplace :: Bool) (f :: p -> * -> *) (i :: p) (j :: p) where
+    DefaultThen 'True  f i j = Apply f (Replace f i) j
+    DefaultThen 'False f i j = LiftA2 f i j
+
+type family DefaultThenCxt (useReplace :: Bool) (f :: p -> * -> *) (i :: p) (j :: p) where
+    DefaultThenCxt 'True  f i j = (Apply f (Replace f i) j ~ Then f i j, ApplyInv f (Replace f i) j)
+    DefaultThenCxt 'False f i j = (LiftA2 f i j ~ Then f i j,            LiftA2Inv f i j)
+
+class GApplicativeThen useReplace (f :: p -> * -> *) where
+    gdefaultThenProxy :: DefaultThenCxt useReplace f i j => proxy useReplace -> f i a -> f j b -> f (Then f i j) b
+    gdefaultThen :: DefaultThenCxt useReplace f i j => f i a -> f j b -> f (Then f i j) b
+
+instance GApplicative f => GApplicativeThen 'True f where
+    {-# INLINE gdefaultThenProxy #-}
+    gdefaultThenProxy _ a b = (id `greplace` a) `gap` b
+    {-# INLINE gdefaultThen #-}
+    gdefaultThen a b = (id `greplace` a) `gap` b
+
+instance GApplicative f => GApplicativeThen 'False f where
+    {-# INLINE gdefaultThenProxy #-}
+    gdefaultThenProxy _ a b = gliftA2 (flip const) a b
+    {-# INLINE gdefaultThen #-}
+    gdefaultThen a b = gliftA2 (flip const) a b
+
 -- | Graph indexed applicative functor.
 class (GFunctor f, GPointed f) => GApplicative (f :: p -> * -> *) where
 
     -- | The apply operation ('<*>') on the graph index.
     --
-    -- Default instance: @Apply f i j = 'Combine' f i j@ 
+    -- Default instance: @Apply f i j = 'Combine' f i j@
     type family Apply f (i :: p) (j :: p) :: p
     type instance Apply f i j = Combine f i j
 
@@ -46,7 +79,7 @@ class (GFunctor f, GPointed f) => GApplicative (f :: p -> * -> *) where
 
     -- | The 'liftA2' operation on the graph index.
     --
-    -- Default instance: @Lift f i j = 'Apply' f ('Apply' f ('Pure' f) i) j@ 
+    -- Default instance: @Lift f i j = 'Apply' f ('Apply' f ('Pure' f) i) j@
     type family LiftA2 f (i :: p) (j :: p) :: p
     type instance LiftA2 f i j = Apply f (Fmap f i) j
 
@@ -56,11 +89,22 @@ class (GFunctor f, GPointed f) => GApplicative (f :: p -> * -> *) where
     type family LiftA2Inv f (i :: p) (j :: p) :: Constraint
     type instance LiftA2Inv f i j = ApplyInv f i j
 
+    -- | Whether to use 'gliftA2', or 'gap' and 'greplace' in the definition
+    -- of 'gthen'.
+    --
+    -- If an efficient 'Replace' exists, we should probably use that to reduce
+    -- allocations. But liftA2 might also be appropriate.
+    type family ThenUseReplace f :: Bool
+    type instance ThenUseReplace f = EfficientReplace f
+
     -- | The then operation ('*>') on the graph index.
     --
-    -- Default instance: @'Then' f i j = 'Apply' f ('Replace' f i) j@ 
+    -- Default instance depends on @'ThenUseReplace' f@:
+    --
+    -- * 'True': @'Then' f i j = 'Apply' f ('Replace' f i) j@
+    -- * 'False': @'Then' f i j = 'LiftA2' f i j@
     type family Then f (i :: p) (j :: p) :: p
-    type instance Then f i j = Apply f (Replace f i) j
+    type instance Then f i j = DefaultThen (ThenUseReplace f) f i j
 
     -- | An invariant on the indexes of 'Then'.
     --
@@ -70,7 +114,7 @@ class (GFunctor f, GPointed f) => GApplicative (f :: p -> * -> *) where
 
     -- | The but operation ('<*') on the graph index.
     --
-    -- Default instance: @But f i j = 'LiftA2' f i j@ 
+    -- Default instance: @But f i j = 'LiftA2' f i j@
     type family But f (i :: p) (j :: p) :: p
     type instance But f i j = LiftA2 f i j
 
@@ -85,7 +129,8 @@ class (GFunctor f, GPointed f) => GApplicative (f :: p -> * -> *) where
 
     -- | Lift a binary function to actions.
     --
-    gliftA2 :: LiftA2Inv f i j => (a -> b -> c) -> f i a -> f j b -> f (LiftA2 f i j) c 
+    -- Default implementation is defined in terms of 'Apply' and 'Fmap'.
+    gliftA2 :: LiftA2Inv f i j => (a -> b -> c) -> f i a -> f j b -> f (LiftA2 f i j) c
     default gliftA2 :: (Apply f (Fmap f i) j ~ LiftA2 f i j, ApplyInv f (Fmap f i) j)
                     => (a -> b -> c) -> f i a -> f j b -> f (LiftA2 f i j) c
     gliftA2 f x = gap (gmap f x)
@@ -95,9 +140,13 @@ class (GFunctor f, GPointed f) => GApplicative (f :: p -> * -> *) where
     -- Default implementation requires the default instance of 'Then'.
     {-# INLINE gthen #-}
     gthen :: ThenInv f i j => f i a -> f j b -> f (Then f i j) b
-    default gthen :: (Apply f (Replace f i) j ~ Then f i j, ApplyInv f (Replace f i) j, ThenInv f (Replace f i) j)
-                  => f i a -> f j b -> f (Then f i j) b
-    gthen a b = (id `greplace` a) `gap` b
+    default gthen :: (GApplicativeThen (ThenUseReplace f) f, DefaultThenCxt (ThenUseReplace f) f i j)
+                   => f i a -> f j b -> f (Then f i j) b
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
+    gthen a b = gdefaultThen @(ThenUseReplace f) a b
+#else
+    gthen a b = gdefaultThenProxy (Proxy :: Proxy (ThenUseReplace f)) a b
+#endif
 
     -- | Sequence actions, discarding values of the second argument ('<*').
     --

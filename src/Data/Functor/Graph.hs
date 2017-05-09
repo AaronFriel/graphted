@@ -11,6 +11,7 @@ Portability :  portable | non-portable (<reason>)
 <module description starting at first column>
 -}
 
+{-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE DefaultSignatures    #-}
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE TypeFamilies         #-}
@@ -29,9 +30,12 @@ class GFunctor (f :: p -> * -> *) where
 
     -- | The Replace operation ('<$') on the graph index.
     --
-    -- Default instance: @Replace f i = 'Fmap' f i@ 
+    -- Default instance: @Replace f i = 'Fmap' f i@
     type family Replace f (i :: p) :: p
     type instance Replace f i = Fmap f i
+
+    type family EfficientReplace f :: Bool
+    type instance EfficientReplace f = 'False
 
     -- | Map a function over over the functor ('fmap').
     gmap :: (a -> b) -> f i a -> f (Fmap f i) b
@@ -43,3 +47,7 @@ class GFunctor (f :: p -> * -> *) where
     greplace :: a -> f i b -> f (Replace f i) a
     default greplace :: (Replace f i ~ Fmap f i) => a -> f i b -> f (Replace f i) a
     greplace = gmap . const
+
+-- | This should only be implemented when the replace operation has a more efficient
+-- @'greplace'@ than @'gmap' . const@.
+class GFunctorReplace (f :: p -> * -> *)
