@@ -59,8 +59,8 @@ infixl 4 <*>, <*, *>, <**>
 fmap :: GFunctor f => (a -> b) -> f i a -> f (Fmap f i) b
 fmap = gmap
 
-(<$) :: GFunctor f => b -> f i a -> f (Fconst f i) b
-(<$) = gconst
+(<$) :: GFunctor f => b -> f i a -> f (Replace f i) b
+(<$) = greplace
 
 (<$>) :: GFunctor f => (a -> b) -> f i a -> f (Fmap f i) b
 (<$>) = fmap

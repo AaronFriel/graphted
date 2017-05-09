@@ -49,7 +49,7 @@ instance Applicative f => GPointed (GWrapped f) where
 
 instance Functor f => GFunctor (GWrapped f) where
     gmap f = GWrapped . fmap f . unG
-    gconst f = GWrapped . ((<$) f) . unG
+    greplace f = GWrapped . ((<$) f) . unG
 
 instance Applicative f => GApplicative (GWrapped f) where
     type But (GWrapped f) i j = i

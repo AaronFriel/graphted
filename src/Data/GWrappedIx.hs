@@ -69,7 +69,7 @@ instance IxPointed f => GPointed (WrappedIx f) where
 
 instance IxFunctor f => GFunctor (WrappedIx f) where
     gmap f = WrappedIx . imap f . unIx
-    gconst a = WrappedIx . imap (const a) . unIx
+    greplace a = WrappedIx . imap (const a) . unIx
 
 instance IxApplicative f => GApplicative (WrappedIx f) where
     type But (WrappedIx f) l r = '( FstIx l, SndIx r )

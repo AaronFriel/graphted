@@ -1,5 +1,5 @@
 name:                graphted
-version:             0.2.5.1
+version:             0.3.0.0
 synopsis:    Graph indexed monads.
 -- description: TODO
 homepage:            https://github.com/aaronfriel/graphted#readme
@@ -8,7 +8,7 @@ license-file:        LICENSE
 author:              Aaron Friel
 maintainer:          mayreply@aaronfriel.com
 copyright:           BSD3
-category:            Control
+category:            Control, Comonads, Monads
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10

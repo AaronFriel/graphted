@@ -1,6 +1,6 @@
 {- |
 Module      :  Control.MonadFail.Graph
-Description :  Graph indexed monads with failure
+Description :  Graph indexed monads with failure.
 Copyright   :  (c) Aaron Friel
 License     :  BSD-3
 
@@ -8,7 +8,42 @@ Maintainer  :  Aaron Friel <mayreply@aaronfriel.com>
 Stability   :  unstable
 Portability :  portable
 
+This is only used in Do Notation with refutable patterns. e.g.:
+
+@
+    do  Just a <- m
+        k a
+@
+
+Is desugared as:
+
+@
+    let f (Just a) = k a
+        f _        = fail "Pattern match failure in do expression..."    
+    in m >>= k
+@
+
+With @-XApplicativeDo@, there are two outstanding issues:
+
+__First__, This will not compile (https://ghc.haskell.org/trac/ghc/ticket/13648) as
+the body statements @m1@ and @m2@ are desugared incorrectly:
+
+@
+    f m1 m2 k = do
+        m1
+        m2
+        k
+@
+
+To resolve, replace @m1@ with @_ <- m1@.
+
+__Second__, @'fail'@ must be in scope (https://ghc.haskell.org/trac/ghc/ticket/13649)
+when wildcard patterns are used. The module "Prelude.Graphted" takes care of
+this, and custom preludes must as well. A @'GMonadFail'@ constraint will not
+be added unless a refutable pattern is used.
+
 -}
+
 
 {-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleContexts      #-}
