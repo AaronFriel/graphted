@@ -79,13 +79,13 @@ class (GFunctor f, GPointed f) => GApplicative (f :: p -> * -> *) where
 
     -- | The 'liftA2' operation on the graph index.
     --
-    -- Default instance: @Lift f i j = 'Apply' f ('Apply' f ('Pure' f) i) j@
+    -- Default instance: @LiftA2 f i j = 'Apply' f ('Fmap' f i) j@
     type family LiftA2 f (i :: p) (j :: p) :: p
     type instance LiftA2 f i j = Apply f (Fmap f i) j
 
     -- | An invariant on the indexes of 'But'.
     --
-    -- Default instance: @ButInv m i j = 'ApplyInv' m i j@
+    -- Default instance: @LiftA2Inv m i j = 'ApplyInv' m i j@
     type family LiftA2Inv f (i :: p) (j :: p) :: Constraint
     type instance LiftA2Inv f i j = ApplyInv f i j
 
